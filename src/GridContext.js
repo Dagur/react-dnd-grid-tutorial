@@ -1,5 +1,5 @@
-import React, { Component, createContext } from "react";
-import sampleItems from './sampleItems';
+import React from "react";
+import sampleItems from "./sampleItems";
 
 // Helper functions
 
@@ -19,47 +19,41 @@ function moveElement(array, index, offset) {
 
 // Context
 
-const GridContext = createContext({ items: [] });
+const GridContext = React.createContext({ items: [] });
 
-export class GridProvider extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      items: sampleItems,
-      moveItem: this.moveItem,
-      setItems: this.setItems
-    };
-  }
+export function GridProvider({ children }) {
+  const [items, setItems] = React.useState(sampleItems);
 
-  render() {
-    return (
-      <GridContext.Provider value={this.state}>
-        {this.props.children}
-      </GridContext.Provider>
-    );
-  }
+  const moveItem = React.useCallback(
+    (sourceId, destinationId) => {
+      const sourceIndex = items.findIndex((item) => item.id === sourceId);
+      const destinationIndex = items.findIndex(
+        (item) => item.id === destinationId
+      );
 
-  setItems = items => this.setState({ items });
+      // If source/destination is unknown, do nothing.
+      if (sourceId === -1 || destinationId === -1) {
+        return;
+      }
 
-  moveItem = (sourceId, destinationId) => {
-    const sourceIndex = this.state.items.findIndex(
-      item => item.id === sourceId
-    );
-    const destinationIndex = this.state.items.findIndex(
-      item => item.id === destinationId
-    );
+      const offset = destinationIndex - sourceIndex;
 
-    // If source/destination is unknown, do nothing.
-    if (sourceId === -1 || destinationId === -1) {
-      return;
-    }
+      setItems([...moveElement(items, sourceIndex, offset)]);
+    },
+    [items, setItems]
+  );
 
-    const offset = destinationIndex - sourceIndex;
+  const context = React.useMemo(
+    () => ({
+      items,
+      moveItem,
+    }),
+    [items, moveItem]
+  );
 
-    this.setState(state => ({
-      items: moveElement(state.items, sourceIndex, offset)
-    }));
-  };
+  return (
+    <GridContext.Provider value={context}>{children}</GridContext.Provider>
+  );
 }
 
 export default GridContext;
